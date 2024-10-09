@@ -1,13 +1,8 @@
-/// main.rs
-/// Demonstration using async function (reqwest)
-/// with a Task
-///
-/// Learning Rust
-///
-use iced::Settings;
 use iced::Task;
-use iced::Theme;
 use serde::Deserialize;
+use iced::widget::Theme;
+use iced::window::Position;
+use iced::{window, Size};
 
 #[derive(Deserialize)]
 struct CoinGeckoResponse {
@@ -31,6 +26,10 @@ struct App {
 }
 
 impl App {
+
+        fn new() -> Self {
+        Self { ip: "...".to_string() }
+    }
     fn view(&self) -> iced::Element<Message> {
         let content = iced::widget::column![
             iced::widget::text(&self.ip),
@@ -72,12 +71,17 @@ async fn fetch_ip() -> String {
 }
 
 fn theme(_: &App) -> Theme {
-    Theme::Nightfly
+    Theme::Nord
 }
 
-fn main() {
-    let _ = iced::application("Get latest Bitcoin price", App::update, App::view)
+fn main()->Result<(), iced::Error> {
+    iced::application("Get Latest Bitcoin Price", App::update, App::view)
+        .window(window::Settings {
+            position: Position::Centered,
+            resizable: false,
+            size: Size::new(300.0, 400.0),
+            ..Default::default()
+        })
         .theme(theme)
-        .settings(Settings::default())
-        .run();
+        .run_with(|| (App::new(), iced::Task::none()))
 }
