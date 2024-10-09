@@ -1,39 +1,45 @@
-use iced::Task;
-use serde::Deserialize;
 use iced::widget::Theme;
 use iced::window::Position;
 use iced::{window, Size};
+use iced::{Point, Task};
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 struct CoinGeckoResponse {
     bitcoin: Bitcoin,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Debug)]
 struct Bitcoin {
     usd: f64,
+    gbp: f64,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     Refetch,
-    CurrentIp(String),
+    CurrentPrice((f64, f64)), // Use a single tuple here
 }
 
 #[derive(Default)]
 struct App {
-    ip: String,
+    price_usd: f64,
+    price_gbp: f64,
 }
 
 impl App {
-
-        fn new() -> Self {
-        Self { ip: "...".to_string() }
+    fn new() -> Self {
+        Self {
+            price_usd: 0.0,
+            price_gbp: 0.0,
+        }
     }
+
     fn view(&self) -> iced::Element<Message> {
         let content = iced::widget::column![
-            iced::widget::text(&self.ip),
-            iced::widget::button("Fetch Current Price in USD").on_press(Message::Refetch)
+            iced::widget::text(format!("{:.2} USD", self.price_usd)),
+            iced::widget::button("Fetch Current Price").on_press(Message::Refetch),
+            iced::widget::text(format!("{:.2} GBP", self.price_gbp))
         ]
         .width(iced::Fill)
         .spacing(10)
@@ -45,41 +51,42 @@ impl App {
     }
 
     fn update(&mut self, message: Message) -> iced::Task<Message> {
-        println!("update");
         match message {
-            Message::Refetch => return Task::perform(fetch_ip(), Message::CurrentIp),
-            Message::CurrentIp(text) => {
-                self.ip = text;
+            Message::Refetch => {
+                // Use a closure to match the output tuple
+                return Task::perform(fetch_btc(), |(usd, gbp)| Message::CurrentPrice((usd, gbp)))
+            } 
+            Message::CurrentPrice((usd, gbp)) => {
+                self.price_usd = usd;
+                self.price_gbp = gbp;
             }
         }
         Task::none()
     }
 }
 
-async fn fetch_ip() -> String {
-    println!("fetch_ip");
-    let url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
+async fn fetch_btc() -> (f64, f64) {
+    let url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd,gbp";
     let response = reqwest::get(url)
         .await
         .unwrap()
-        .json::<CoinGeckoResponse>() // Deserialize JSON into struct
+        .json::<CoinGeckoResponse>()
         .await
         .unwrap();
 
-    let res = response;
-    format!("Price {:.2}", res.bitcoin.usd)
+    (response.bitcoin.usd, response.bitcoin.gbp)
 }
 
 fn theme(_: &App) -> Theme {
     Theme::Nord
 }
 
-fn main()->Result<(), iced::Error> {
+fn main() -> Result<(), iced::Error> {
     iced::application("Get Latest Bitcoin Price", App::update, App::view)
         .window(window::Settings {
-            position: Position::Centered,
+            position: Position::Specific(Point::new(1400.0, 200.0)),
             resizable: false,
-            size: Size::new(300.0, 400.0),
+            size: Size::new(400.0, 400.0),
             ..Default::default()
         })
         .theme(theme)
