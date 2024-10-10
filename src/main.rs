@@ -1,4 +1,8 @@
 use iced::widget::Theme;
+use iced::widget::image;
+use iced::Renderer;
+use iced::Length;
+use iced::widget::Container;
 use iced::window::Position;
 use iced::{window, Size};
 use iced::{Point, Task};
@@ -36,10 +40,20 @@ impl App {
     }
 
     fn view(&self) -> iced::Element<Message> {
+
+        let img = image("resources/Bitcoin.png");
+
+        // Embed the image in a Container
+        let img_content = Container::new(img)
+            .width(iced::Length::Shrink)
+            .height(iced::Length::Shrink);
+
+
         let content = iced::widget::column![
             iced::widget::text(format!("{:.2} USD", self.price_usd)),
             iced::widget::button("Fetch Current Price").on_press(Message::Refetch),
-            iced::widget::text(format!("{:.2} GBP", self.price_gbp))
+            iced::widget::text(format!("{:.2} GBP", self.price_gbp)),
+            img_content,
         ]
         .width(iced::Fill)
         .spacing(10)
@@ -84,9 +98,9 @@ fn theme(_: &App) -> Theme {
 fn main() -> Result<(), iced::Error> {
     iced::application("Get Latest Bitcoin Price", App::update, App::view)
         .window(window::Settings {
-            position: Position::Specific(Point::new(1400.0, 200.0)),
+            position: Position::Specific(Point::new(1000.0, 200.0)),
             resizable: false,
-            size: Size::new(400.0, 400.0),
+            size: Size::new(400.0, 300.0),
             ..Default::default()
         })
         .theme(theme)
